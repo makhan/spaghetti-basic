@@ -21,13 +21,14 @@ string_lib=[
 	('LEFT', lambda s,i: s[:i]),
 	('RIGHT', lambda s,i:s[-i:]),
 	('CHR', chr),
-	('STR',str) 
+	('STR',str)
 ]
 
 int_lib=[
 	('INT', int),
 	('ASC', ord),
-	('ABS',abs)
+	('ABS',abs),
+	('LEN',len)
 ]
 
 float_lib=[

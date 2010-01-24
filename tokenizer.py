@@ -6,7 +6,7 @@ DEBUG=False
 # Currently this is a regex hack-job
 
 import re
-STRING=[r'\".*\"']
+STRING=[r'\"[^\"]*\"']
 WORDS=map(lambda x:"\\b%s\\b"%x,['IF','LET','AS','THEN','ELSE','DIM','PRINT','INPUT','GOTO','GOSUB','RETURN',
 		'STRING','INTEGER','DOUBLE','FLOAT','BOOLEAN','AND','OR','NOT','XOR','REM','END'])
 OPERATORS=[r'\+',r'\-',r'\*',r'/',r'\%',r'>=',r'<=',r'<>','=','<','>',r'\(',r'\)',r',']

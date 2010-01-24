@@ -148,8 +148,9 @@ def expression(source):
 	[tokens,pos]=source
 	if pos<len(tokens):
 		left=boolean(source)
-		
+		#print left
 		if source[-1]<len(source[0]) and source[0][source[-1]] in LOGICAL:
+			#print "more to come"
 			mid=terminal_operator(source,LOGICAL)
 			right=expression(source)
 			return (mid,left,right)

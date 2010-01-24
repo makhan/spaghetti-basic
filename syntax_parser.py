@@ -115,9 +115,8 @@ def decl(source):
 		return ("DIM",var,"UNKNOWN") 	
 
 def asgn(source):
-	#print "asgn"
 	(tokens,pos)=source
-	if pos>=len(source):
+	if pos>=len(source[0]):
 		raise ParseError(' '.join(source[0])+"\nMalformed statement: Expected LET or <identifier>")
 	else:
 		if tokens[pos]=='LET':

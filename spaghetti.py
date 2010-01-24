@@ -77,7 +77,7 @@ def make_func(return_type,op):
 
 def make_unary_func(return_type,op):
 	def ret(x):
-		return unary_oper(x,y,return_type,op)
+		return unary_oper(x,return_type,op)
 	return ret
 
 def get_type(a,b):
