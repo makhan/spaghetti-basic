@@ -11,7 +11,7 @@ def list_statement(source):
 		return None
 	else:
 		ret=expression(source)
-		if len(source[0])>source[-1] and	expect(source,','):
+		if len(source[0])>source[-1] and expect(source,','):
 			return ('LIST',ret,list_statement(source))
 		else:
 			return ('LIST',ret) 	

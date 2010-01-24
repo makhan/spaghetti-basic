@@ -1,6 +1,10 @@
 #! /usr/bin/python
 DEBUG=False
 
+# TODO:
+# Use a real lexer
+# Currently this is a regex hack-job
+
 import re
 STRING=[r'\".*\"']
 WORDS=map(lambda x:"\\b%s\\b"%x,['IF','LET','AS','THEN','ELSE','DIM','PRINT','INPUT','GOTO','GOSUB','RETURN',

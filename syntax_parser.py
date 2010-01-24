@@ -30,13 +30,15 @@ def get_identifier(source):
 			return ("IDENTIFIER",tokens[pos])
 
 def is_let_stmt(source):
-	(tokens,pos)=source
+	[tokens,pos]=source
+	old_pos=pos
 	if tokens[pos]=='LET':
 		return True
 	elif identifier(tokens[pos]):
 		new_source=[tokens,pos]
 		parsed_id=get_identifier(new_source)
 		pos=new_source[-1]
+		source[:]=[tokens,old_pos]
 		return pos<len(tokens)-1 and tokens[pos]=='='
 	else:
 		return False
@@ -116,7 +118,7 @@ def asgn(source):
 	#print "asgn"
 	(tokens,pos)=source
 	if pos>=len(source):
-		raise ParseError("Malformed statement: Expected LET or <identifier>")
+		raise ParseError(' '.join(source[0])+"\nMalformed statement: Expected LET or <identifier>")
 	else:
 		if tokens[pos]=='LET':
 			key_word(source,'LET')

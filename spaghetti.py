@@ -10,6 +10,7 @@
 # Warning:
 # The code has practically no comments/docstrings
 # Trying to run incorect programs generates exceptions -> no helpful syntax error type messages
+# There is no real lexer at the moment. That part of the job is done for now using regexes.
 
 DEBUG=False
 
