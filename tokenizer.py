@@ -10,7 +10,7 @@ STRING=[r'\"[^\"]*\"']
 WORDS=map(lambda x:"\\b%s\\b"%x,['IF','LET','AS','THEN','ELSE','DIM','PRINT','INPUT','GOTO','GOSUB','RETURN',
 		'STRING','INTEGER','DOUBLE','FLOAT','BOOLEAN','AND','OR','NOT','XOR','REM','END'])
 OPERATORS=[r'\+',r'\-',r'\*',r'/',r'\%',r'>=',r'<=',r'<>','=','<','>',r'\(',r'\)',r',']
-IDENTIFIER_NUMBER=[r'\b\-\d+\b',r'\b\d+\b',r'\b\w+\b']
+IDENTIFIER_NUMBER=[r'\b\d*\.\d+\b',r'\b\d+\.\d*\b',r'\b\d+\b',r'\b\w+\b']
 
 all_tokens=[]
 all_tokens.extend(STRING)

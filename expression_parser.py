@@ -40,7 +40,7 @@ def identifier(token):
 
 def literal(token):
 	try:
-		x=int(token)
+		x=float(token)
 		ret=True
 	except ValueError:
 		ret=False

@@ -22,10 +22,13 @@ import syntax_parser
 from variables import Variable,StringType, MultiArray, Function
 import standard_library
 
-		
+#Allowed operators		
 OPERATORS=['+','-','*','/','%','AND','OR','NOT','XOR','=','>','<','<>','>=','<=']
 
+#determines order of promotion to another type whne mixed types used in the same expression 
 NUMERIC_PRECEDENCE=[StringType,ctypes.c_bool,ctypes.c_long,ctypes.c_float, ctypes.c_double]
+
+#mapping of C/variables module types to equivalent python types
 REQUIRED_PY_TYPE={
 	ctypes.c_bool: bool,   
 	ctypes.c_long: int,
@@ -34,6 +37,7 @@ REQUIRED_PY_TYPE={
 	StringType: str
 }
 
+#mapping of C/variables module types to Spaghetti types
 NUMERIC_TYPES={
 	ctypes.c_bool: 'BOOLEAN',
 	ctypes.c_long: 'INTEGER',
@@ -42,6 +46,7 @@ NUMERIC_TYPES={
 	StringType: 'STRING'
 }
 
+#mapping of Spaghetti types to C/variables module types
 DATA_TYPES={
 	'INTEGER':ctypes.c_long,
 	'DOUBLE':ctypes.c_double,
@@ -50,55 +55,78 @@ DATA_TYPES={
 	'STRING': StringType
 }
 
+
 def cast(dest, var):
+	"""Casts to a new type
+	types are either C types (ctypes.*) or types defined in the variables module.
+	var must have a .value attribute that is a Python type.
+	"""
 	return dest(var.value)
 
 def cast_boolean(x):
+	"""Returns 1 or 0 based on whether x is evaluated to True (according to Python's rules of truth) or not"""
 	if x:
 		return 1
 	else:
 		return 0
 
 def cast_string(number):
+	"""Casts a C type or a type from teh variables module to a Python string"""
 	return str(number.value)
 
 def binary_oper(x,y,return_type,op):
+	"""Performs a binary operation on two values and casts the answer to a specified type"""
 	if DEBUG:
 		print "operation:",x,op,y
 	return return_type(op(x.value,y.value))
 
 def unary_oper(x,return_type,op):
+	"""Performs a unary operation on a value and casts the answer to a specified type"""
 	return return_type(op(x.value))
 		
 def make_func(return_type,op):
+	"""Returns a function that takes two arguments and returns value whose type is return_type.
+	Basically returns a function that wraps binary_oper function, not needing the extra arguments"""
 	def ret(x,y):
 		return binary_oper(x,y,return_type,op)
 	return ret
 
 def make_unary_func(return_type,op):
+	"""Same as make_func, only for unary operations"""
 	def ret(x):
 		return unary_oper(x,return_type,op)
 	return ret
 
 def get_type(a,b):
+	"""Returns the type of the answer if a binary operation is to be performed on a and b"""
 	if DEBUG:
 		print "type of ",a," and ",b
 	at=type(a)
 	bt=type(b)
-	# Stupid Hack
+	
+	# Stupid Hack: x in not in NUMERIC_TYPES => x is StringType
+	# This will break when additional types are added, but works for now
 	(at,bt) = map(lambda x: x if x in NUMERIC_TYPES else StringType, (at,bt))
+	
 	if DEBUG:
 		print "types are ",at," and ",bt
 	
 	n=NUMERIC_PRECEDENCE
+	#return highest of at and bt (i.e. promoting the lower of them to that type would not lose data) 
 	return NUMERIC_TYPES[n[max(n.index(at),n.index(bt))]]
 
 	
 class Interpreter:
+	"""The main interpreter class.
+	Takes a list of parse trees and start evaluation from the first one"""
 	def __init__(self,parse_trees,line_mapping):
 		self.parse_trees=parse_trees
 		self.line_mapping=line_mapping
-		self.functions={
+		self.functions={ # operators
+			# format: 
+			# (operator,return type): make_func(...)
+			# (operator,return type,'UNARY'): make_unary_func(...)
+			
 			('+','INTEGER'):make_func(ctypes.c_long,operator.add),
 			('+','STRING'):make_func(StringType,operator.concat),
 			('-','INTEGER'):make_func(ctypes.c_long,operator.sub),
@@ -129,54 +157,83 @@ class Interpreter:
 			
 		
 		self.cur_line=0
-		self.variables=standard_library.stdlib
-		self.stack=[]
+		# self.variables stores all variables created in a Spaghetti program as well as
+		# a small set of predefined functions. Since function calls look the same as 
+		# accessing an array element, the interpreter also does not make any distinction,
+		# and predefined function objects have a .get method just like the MultiArray class. 
+		self.variables=standard_library.stdlib # initiall it only has predefined functions 
+		self.stack=[] # call stack used to store return locations for GOSUB-RETURN 
 		
 	def printer(self,lst):
+		"""helper method that prints a list of items.
+		lst is not a Python list, but rather a parse tree node
+		representing a list
+		"""
 		if lst==None:
-			return
+			return # empty list, return without printing a newline
 		elif len(lst)==2:
+			# non-empty list but with no next element
+			# print this element including a newline and return
 			print self.evaluate(lst[1]).value
 		else:
+			# current node has successors,
+			# print current value and move on to the next node 
 			print self.evaluate(lst[1]).value,
 			self.printer(lst[-1])
 			
 	def evaluate(self,node):
+		"""Evaluator function
+		Evaluates the parse tree rooted at the current node
+		Basically a giant if construct that decides what to do
+		based on the type of node (as found by the string at node[0])
+		"""
 		if DEBUG:
 			print "Evaluating",node
+		
 		if self.cur_line>=len(self.parse_trees):
+			#reached end of the list of parse trees
 			return None
+		
 		if node[0]=='DIM':
-			name=node[1][1]
-			id_node=node[1]
+			# decalaration
+			name=node[1][1] # gets the name of the identifier only (e.g. in myvar and myvar(3,3), myvar is the name)
+			id_node=node[1] # parse tree rooted at id_node represents an identifier 
 			
+			# not specifying a data type make it INTEGER by default
 			if len(node)>2:
 				datatype=DATA_TYPES[node[2]]
 			else:
 				datatype=DATA_TYPES['INTEGER']
 			
+			# declaring two variables with the same name (or the name of a predefined function) is not allowed
 			if name in self.variables:
 				raise InterpreterError("Runtime Error: %s already declared"%name)
 			
 			if len(id_node)==2:
+				# scalar: simply create a new Variable
 				var=Variable(name,datatype,datatype(0))
 			else:
-				#array
+				# array: get dimensions by evaluating the list following the name and create a MultiArray
 				dimensions=self.evaluate(id_node[-1])
 				var=MultiArray(dimensions, name, datatype,datatype(0))
 			
 			self.variables[name]=var
 			self.cur_line+=1
+		
 		elif node[0]=='LET':
-			varname=node[1][1]
-			value=self.evaluate(node[2])
+			# assignment
+			varname=node[1][1] # left hand side
+			value=self.evaluate(node[2]) # right hand side
 			if DEBUG:
 				print value
+				
 			if varname not in self.variables:
-				var=Variable(varname,DATA_TYPES['INTEGER'],cast(DATA_TYPES['INTEGER'],0))
+				rhs_type=get_type(value,value)
+				var=Variable(varname,DATA_TYPES[rhs_type],cast(DATA_TYPES[rhs_type],ctypes.c_long(0)))
 				self.variables[varname]=var
 			else:
 				var=self.variables[varname]
+			
 			if len(node[1])==2:
 				var.value=var.type(REQUIRED_PY_TYPE[var.type](value.value))
 			else:
@@ -250,7 +307,10 @@ class Interpreter:
 				tp=get_type(*args)
 			else:
 				tp=NUMERIC_TYPES[type(args[0])]
-			ret=self.functions[(node[0],tp)](*args)
+			if (node[0]=='-' or node[0]=='NOT') and len(node)==2:
+				ret=self.functions[(node[0],tp,'UNARY')](*args)
+			else:
+				ret=self.functions[(node[0],tp)](*args)
 			return ret
 		elif node[0]=='REM':
 			self.cur_line+=1

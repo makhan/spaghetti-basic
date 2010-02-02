@@ -3,17 +3,20 @@ import math
 import ctypes
 import random
 
-DEBUG=False
+DEBUG=True
 
-def wrapper(f, return_type):
+function_mapping={
+	int:ctypes.c_long,
+	float:ctypes.c_double,
+	#str:StringType
+}
+
+def wrapper(f):
 	def ret(*args):
-		newargs=[x.value for x in args]
-		
-		if DEBUG:
-			print "Called function: %s"%str(f)
-			print "with arguments",newargs
-		
-		return return_type(f(*newargs))
+		new_args=[x.value for x in args]
+		answer=f(*new_args)
+		return_type=function_mapping.get(type(answer),StringType)
+		return return_type(answer)
 	return ret
 
 string_lib=[
@@ -57,9 +60,6 @@ float_lib=[
 
 
 stdlib={}
-stdlib.update([(name,Function(wrapper(f,ctypes.c_long))) for (name,f) in int_lib])
-stdlib.update([(name,Function(wrapper(f,StringType))) for name,f in string_lib])
-stdlib.update([(name.upper(),Function(wrapper(f,ctypes.c_double))) for name,f in float_lib])
-
-
-
+stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
+stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
+stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
