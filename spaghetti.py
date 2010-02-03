@@ -8,7 +8,7 @@
 # <muntasir.khan@gmail.org>
 
 # Warning:
-# The code has practically no comments/docstrings
+# Most of the code has practically no comments/docstrings
 # Trying to run incorect programs generates exceptions -> no helpful syntax error type messages
 # There is no real lexer at the moment. That part of the job is done for now using regexes.
 
@@ -229,7 +229,10 @@ class Interpreter:
 				
 			if varname not in self.variables:
 				rhs_type=get_type(value,value)
-				var=Variable(varname,DATA_TYPES[rhs_type],cast(DATA_TYPES[rhs_type],ctypes.c_long(0)))
+				if len(node[1])==2:
+					var=Variable(varname,DATA_TYPES[rhs_type],cast(DATA_TYPES[rhs_type],ctypes.c_long(0)))
+				else:
+					raise InterpreterError("Cannot assign to undeclared array %s: "%varname)
 				self.variables[varname]=var
 			else:
 				var=self.variables[varname]
