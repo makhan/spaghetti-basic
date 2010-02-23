@@ -44,32 +44,39 @@ def is_let_stmt(source):
 		return False
 def stmt(source):
 	(tokens,pos)=source
-	if pos>=len(tokens):
-		raise ParseError('Not a statement: expecting statement')
+	if pos>=len(tokens) or tokens[pos]=='\n':
+		#raise ParseError('Not a statement: expecting statement')
+		return ('REM',)
 	else:
+		#print tokens
+		ret=None
 		if tokens[pos]=='IF':
-			return branch(source)
+			ret=branch(source)
 		elif tokens[pos]=='GOTO':
-			return jump(source)
+			ret=jump(source)
 		elif is_let_stmt(source):
-			return asgn(source)
+			ret=asgn(source)
 		elif tokens[pos]=='INPUT':
-			return inp(source)
+			ret=inp(source)
 		elif tokens[pos]=='PRINT':
-			return output(source)
+			ret=output(source)
 		elif tokens[pos]=='GOSUB':
-			return sub(source)
+			ret=sub(source)
 		elif tokens[pos]=='RETURN':
-			return return_(source)
+			ret=return_(source)
 		elif tokens[pos]=='DIM':
-			return decl(source)
+			ret=decl(source)
 		elif tokens[pos]=='END':
-			return end(source)
+			ret=end(source)
 		elif tokens[pos]=='REM':
-			return rem(source)
+			ret=rem(source)
 		else:
-			return expression(source)
-			
+			ret=expression(source)
+		if expect(source,':'):
+			print "found"
+			ret=('STMT',ret,stmt(source))
+		return ret
+		
 def rem(source):
 	while len(source[0])>source[-1]:
 		source[-1]+=1
@@ -194,13 +201,28 @@ def program(source):
 
 def make_source(tokens):
 	return [tokens,0]
+	
+def is_line_num(token):
+	try:
+		num=int(token)
+		return '.' not in token
+	except ValueError:
+		return False
+		 
 def create_parse_trees(lines):
 	#each line is tokenized separately
 	line_num_to_index={}
 	for i,line in enumerate(lines):
-		#first token is always line number
-		line_num_to_index[int(line[0])]=i
-	return (line_num_to_index,tuple([stmt(make_source(line[1:])) for line in lines]))
+		# first token is always line number <- scratch that
+		#line_num_to_index[int(line[0])]=i
+		if len(line) and is_line_num(line[0]):
+			#print "Found line num %s"%line[0]
+			#start=1
+			line_num_to_index[int(line[0])]=i
+			lines[i]=line[1:]
+		#else:
+			#start=0
+	return (line_num_to_index,tuple([stmt(make_source(line)) for line in lines]))
 	
 if __name__=='__main__':
 	from sys import stdin

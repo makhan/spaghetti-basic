@@ -13,7 +13,11 @@ function_mapping={
 
 def wrapper(f):
 	def ret(*args):
-		new_args=[x.value for x in args]
+		#print args
+		try:
+			new_args=[x.value for x in args]
+		except:
+			new_args=args
 		answer=f(*new_args)
 		return_type=function_mapping.get(type(answer),StringType)
 		return return_type(answer)
@@ -24,7 +28,8 @@ string_lib=[
 	('LEFT', lambda s,i: s[:i]),
 	('RIGHT', lambda s,i:s[-i:]),
 	('CHR', chr),
-	('STR',str)
+	('STR',str),
+	#('LEN',len)
 ]
 
 int_lib=[
@@ -58,8 +63,12 @@ float_lib=[
 	('dbl',float)
 ]
 
+#hacky_functions=[
+#	('LEN',len)
+#]
 
 stdlib={}
 stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
 stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
 stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
+#stdlib.update([(name, Function(f)) for name,f in hacky_functions])

@@ -7,7 +7,7 @@ class Variable:
 		self.value=value
 	
 	def __str__(self):
-		return str(value)
+		return str(self.value)
 		
 class StringType:
 	def __init__(self,value):
@@ -15,6 +15,8 @@ class StringType:
 		self.__class__=StringType
 	def __str__(self):
 		return self.value
+	def __len__(self):
+		return len(self.__value__) 
 	
 class MultiArray:
 	def __convert(self,coords):
@@ -30,6 +32,7 @@ class MultiArray:
 		self.__array=[default_value for i in xrange(reduce(operator.mul,(x.value for x in dimensions),1))]
 		self.type=type_
 		self.name=name
+		self.value=self.__array
 		
 	def set_(self,coords, value):
 		pos=self.__convert(coords)
@@ -39,7 +42,12 @@ class MultiArray:
 	def get(self, coords):
 		pos=self.__convert(coords)
 		return self.__array[pos]
+	#def __len__(self):
+	#	return len(self.__array)
 
+	#def value(self):
+	#	return tuple(self.__array)
+		
 class Function:
 	def __init__(self, f):
 		self.__f=f

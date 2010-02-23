@@ -7,7 +7,7 @@ MULT=['*','/','%']
 
 def list_statement(source):
 	(tokens,pos)=source
-	if pos>=len(tokens):
+	if pos>=len(tokens) or tokens[pos]=='\n':
 		return None
 	else:
 		ret=expression(source)
@@ -45,7 +45,7 @@ def literal(token):
 	except ValueError:
 		ret=False
 	finally: 
-		return ret or (token.startswith('"') and token.endswith('"'))
+		return ret or (token.startswith('"') and token.endswith('"')) or (token.startswith("'") and token.endswith("'"))
 
 def not_(source):
 	(tokens,pos)=source
@@ -68,7 +68,6 @@ def identifier_or_literal(source):
 	if pos>=len(tokens):
 		raise ParseError("Expected: Identifier or Literal")
 	else:
-		#print "here"
 		if tokens[pos]=='NOT':
 			return not_(source)
 		elif tokens[pos]=='-':
@@ -90,7 +89,7 @@ def identifier_or_literal(source):
 			source[-1]+=1
 			return ('LITERAL',tokens[pos])
 		else:
-			raise ParseError("Expected: Identifier or Literal:"+' '.join(source[0]))
+			raise ParseError("Expected: Identifier or Literal:"+' '.join(source[0])+" got %s"%tokens[pos])
 			
 def factor(source):
 	(tokens,pos)=source

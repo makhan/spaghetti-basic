@@ -14,13 +14,14 @@
 
 DEBUG=False
 
-from sys import argv
+from sys import argv,setrecursionlimit
 import operator
 import ctypes
 import tokenizer
 import syntax_parser
 from variables import Variable,StringType, MultiArray, Function
 import standard_library
+import getopt
 
 #Allowed operators		
 OPERATORS=['+','-','*','/','%','AND','OR','NOT','XOR','=','>','<','<>','>=','<=']
@@ -161,7 +162,7 @@ class Interpreter:
 		# a small set of predefined functions. Since function calls look the same as 
 		# accessing an array element, the interpreter also does not make any distinction,
 		# and predefined function objects have a .get method just like the MultiArray class. 
-		self.variables=standard_library.stdlib # initiall it only has predefined functions 
+		self.variables=standard_library.stdlib # initially it only has predefined functions 
 		self.stack=[] # call stack used to store return locations for GOSUB-RETURN 
 		
 	def printer(self,lst):
@@ -194,12 +195,17 @@ class Interpreter:
 			#reached end of the list of parse trees
 			return None
 		
-		if node[0]=='DIM':
-			# decalaration
+		if node[0]=='STMT':
+			line=self.cur_line
+			self.evaluate(node[1])
+			if self.cur_line==line:
+				self.evaluate(node[-1])
+		elif node[0]=='DIM':
+			# declaration
 			name=node[1][1] # gets the name of the identifier only (e.g. in myvar and myvar(3,3), myvar is the name)
 			id_node=node[1] # parse tree rooted at id_node represents an identifier 
 			
-			# not specifying a data type make it INTEGER by default
+			# not specifying a data type makes it INTEGER by default
 			if len(node)>2:
 				datatype=DATA_TYPES[node[2]]
 			else:
@@ -230,37 +236,48 @@ class Interpreter:
 			if varname not in self.variables:
 				rhs_type=get_type(value,value)
 				if len(node[1])==2:
+					# not an array: automatic declaration
 					var=Variable(varname,DATA_TYPES[rhs_type],cast(DATA_TYPES[rhs_type],ctypes.c_long(0)))
 				else:
+					# array
 					raise InterpreterError("Cannot assign to undeclared array %s: "%varname)
 				self.variables[varname]=var
 			else:
 				var=self.variables[varname]
 			
 			if len(node[1])==2:
+				# not an array: simple assignment
 				var.value=var.type(REQUIRED_PY_TYPE[var.type](value.value))
 			else:
+				# array: figure out indices first and then try to assign
 				coords=self.evaluate(node[1][-1])
 				try:
 					var.set_(coords,var.type(REQUIRED_PY_TYPE[var.type](value.value)))
 				except AttributeError,e:	
 					raise InterpreterError("Cannot assign to %s"%varname) 
 			self.cur_line+=1
+		
 		elif node[0]=='IF':
+			# conditional
 			cond=self.evaluate(node[1])
 			if cond.value:
 				self.evaluate(node[2])
 			elif len(node)>3:
+				# has an ELSE clause
 				self.evaluate(node[3])
 			else:
 				self.cur_line+=1
+		
 		elif node[0]=='PRINT':
+			# output
 			self.printer(node[1])
 			self.cur_line=self.cur_line+1
 		elif node[0]=='GOTO':
+			# GOTO: figure out the target and move there
 			target=self.evaluate(node[1])
 			self.cur_line=self.line_mapping[target.value]
 		elif node[0]=='GOSUB':
+			# GOSUB: same as GOTO, but keep return address in the stack
 			target=self.evaluate(node[1])
 			self.stack.append(self.cur_line+1)
 			self.cur_line=self.line_mapping[target.value]
@@ -268,7 +285,10 @@ class Interpreter:
 			target_var=node[1][1]
 			var=self.variables[target_var]
 			tp=var.type
-			inp=REQUIRED_PY_TYPE[tp](raw_input())
+			try:
+				inp=REQUIRED_PY_TYPE[tp](raw_input())
+			except EOFError:
+				raise InterpreterError("Can't read input, EOF found")
 			tp=var.type
 			var.value=tp(inp)
 			self.cur_line+=1
@@ -278,7 +298,7 @@ class Interpreter:
 			ret_value=self.stack.pop()
 			self.cur_line=ret_value
 		elif node[0]=='LITERAL':
-			if node[1].startswith('"') and node[1].endswith('"'):
+			if (node[1].startswith('"') and node[1].endswith('"')) or (node[1].startswith("'") and node[1].endswith("'")):
 				return StringType(node[1][1:-1])
 			elif '.' in node[1]:
 				return ctypes.c_double(float(node[1]))
@@ -292,12 +312,20 @@ class Interpreter:
 			if DEBUG:
 				print "variable/array/function: ",varname
 			var=self.variables[varname]
+			
 			if len(node)==2:
+				#print var
+				#print var.value
+				#try:
+				#print "there"
 				return var.value
+				#except AttributeError:
+				#	return var
 			else:
+				#print 'here'
 				indices=self.evaluate(node[2])
 				if DEBUG:
-					#print "Callling %s"%var.name
+					print "Callling %s"%var.name
 					print "args=",indices
 				return var.get(indices)
 				 
@@ -324,6 +352,18 @@ class Interpreter:
 			if DEBUG:
 				print "returning ",ret
 			return ret
+			
+		elif node[0]=='FOR':
+			# Not implemented at the parser level
+			# Assumes node structure of ('FOR',identifier,start_value,end_value,step,node_inside_loop,next_node)
+			(discard,identifier,start_value,end_value,step,node_inside_loop,next_node)=node
+			del discard
+			
+			assignment=('LET',identifier,start_value)
+			
+			while self.evaluate(identifier).value!=self.evaluate(end_value).value:
+				self.evaluate(node_inside_loop)
+			self.evaluate(next_node)
 		else:
 			raise InterpreterError("Unknown parse tree node: %s"%str(node[0]))
 	
@@ -343,15 +383,24 @@ class InterpreterError:
 		return self.value
 		
 if __name__=='__main__':
-	if len(argv)>1:
-		infile=open(argv[1], 'r')
-		lines=infile.readlines()
-		parse_file=open(argv[1][:max(argv[1].index('.'),0)]+'_parsetree.txt','w')
-		#lines=[line.split() for line in lines] # use a real tokenizer 
-		lines=[tokenizer.tokenize(line) for line in lines]
-		(linenum_idx,parse_tree)=syntax_parser.create_parse_trees(lines)
-		parse_file.write(str(parse_tree))
+	setrecursionlimit(10000)
+	#print argv
+	options,arguments=getopt.getopt(argv[1:],"p")
+	#print options
+	#print arguments
+	if len(arguments)==1:
+		try:
+			infile=open(arguments[0], 'r')
+			lines=infile.readlines()
+			lines=[tokenizer.tokenize(line) for line in lines]
+			(linenum_idx,parse_tree)=syntax_parser.create_parse_trees(lines)
+			if ('-p','') in options:
+				#print parse tree in a separate text file
+				parse_file=open(arguments[0][:max(arguments[0].index('.'),0)]+'_parsetree.txt','w')
+				parse_file.write(str(parse_tree))
+		except IOError,ioe:
+			print "Error in reading/writing file:\n",str(ioe)
 		runner=Interpreter(parse_tree, linenum_idx)
 		runner.run()
 	else:
-		print "usage: spaghetti_interpreter <file name>"
+		print "usage: ./spaghetti.py <file name> or python spaghetti.py <file_name>"
