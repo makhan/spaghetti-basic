@@ -40,7 +40,7 @@ REQUIRED_PY_TYPE={
 	FileHandle: file
 }
 
-#mapping of C/variables module types to Spaghetti types
+# mapping of C/variables module types to Spaghetti types
 NUMERIC_TYPES={
 	ctypes.c_bool: 'BOOLEAN',
 	ctypes.c_long: 'INTEGER',
@@ -50,7 +50,7 @@ NUMERIC_TYPES={
 	FileHandle:'FILE'
 }
 
-#mapping of Spaghetti types to C/variables module types
+# mapping of Spaghetti types to C/variables module types
 DATA_TYPES={
 	'INTEGER':ctypes.c_long,
 	'DOUBLE':ctypes.c_double,
@@ -189,31 +189,50 @@ class Interpreter:
 		elif len(lst)==2:
 			# non-empty list but with no next element
 			# print this element including a newline and return
-			#print self.evaluate(lst[1]).__class__
 			print self.evaluate(lst[1]).value
-			#print self.evaluate(lst[1])
 		else:
 			# current node has successors,
 			# print current value and move on to the next node 
 			print self.evaluate(lst[1]).value,
-			#print self.evaluate(lst[1]),
 			self.printer(lst[-1])
 	
-	def read(self, lst):
-		print "reading ",lst
+	def read(self, lst, reader_function):
+		"""
+		Helper method that recursively reads values into a list of variables.
+		The reader_function is a function that is called to read the value.
+		Whether a single token or a whole line or anything else and from which source
+		(e.g. stdin, file, device etc.) is determined by that.
+		"""
 		node=lst[1]
 		target_var=node[1]
+		if target_var not in self.variables:
+			raise InterpreterError("variable %s not defined"%varname)
+			
 		var=self.variables[target_var]
 		tp=var.type
-		try:
-			#inp=REQUIRED_PY_TYPE[tp](raw_input())
-			inp=REQUIRED_PY_TYPE[tp](self.input_source.read_token())
-		except EOFError:
-			raise InterpreterError("Can't read input, EOF found")
-		tp=var.type
-		var.value=tp(inp)
+		if len(node)==2:
+			# scalar
+			try:
+				inp=REQUIRED_PY_TYPE[tp](reader_function())
+			except EOFError:
+				raise InterpreterError("Can't read input, EOF found")
+			tp=var.type
+			var.value=tp(inp)
+		else:
+			# array
+			indices=self.evaluate(node[2])
+			try:
+				inp=REQUIRED_PY_TYPE[tp](reader_function())
+			except EOFError:
+				raise InterpreterError("Can't read input, EOF found")
+			
+			try:
+				var.set_(indices,tp(inp))
+			except AttributeError:
+				raise InterpreterError("Can't read into array %s. Make Sure it is an array and not a function."%target_var)
 		if len(lst)>2:
-			self.read(lst[-1])
+			self.read(lst[-1], reader_function)
+		
 	
 	def evaluate(self,node):
 		"""Evaluator function
@@ -229,10 +248,12 @@ class Interpreter:
 			return None
 		
 		if node[0]=='STMT':
+			# statement
 			line=self.cur_line
 			self.evaluate(node[1])
 			if self.cur_line==line:
 				self.evaluate(node[-1])
+		
 		elif node[0]=='DIM':
 			# declaration
 			name=node[1][1] # gets the name of the identifier only (e.g. in myvar and myvar(3,3), myvar is the name)
@@ -319,33 +340,32 @@ class Interpreter:
 			# output
 			self.printer(node[1])
 			self.cur_line=self.cur_line+1
+		
 		elif node[0]=='GOTO':
 			# GOTO: figure out the target and move there
 			target=self.evaluate(node[1])
 			self.cur_line=self.line_mapping[target.value]
+		
 		elif node[0]=='GOSUB':
 			# GOSUB: same as GOTO, but keep return address in the stack
 			target=self.evaluate(node[1])
 			self.stack.append(self.cur_line+1)
 			self.cur_line=self.line_mapping[target.value]
+		
 		elif node[0]=='INPUT':
-			#target_var=node[1][1]
-			#var=self.variables[target_var]
-			#tp=var.type
-			#try:
-				#inp=REQUIRED_PY_TYPE[tp](raw_input())
-			#	inp=REQUIRED_PY_TYPE[tp](self.input_source.read_line())
-			#except EOFError:
-			#	raise InterpreterError("Can't read input, EOF found")
-			#tp=var.type
-			#var.value=tp(inp)
-			self.read(node[1])
+			self.read(node[1], self.input_source.read_token)
 			self.cur_line+=1
+		elif node[0]=='INPUTLINE':
+			self.readline(node[1], self.input_source.read_line)
+			self.cur_line+=1
+		
 		elif node[0]=='END':
-			self.cur_line=len(self.parse_trees)
+			self.cur_line=len(node[1],self.parse_trees)
+		
 		elif node[0]=='RETURN':
 			ret_value=self.stack.pop()
 			self.cur_line=ret_value
+		
 		elif node[0]=='LITERAL':
 			if (node[1].startswith('"') and node[1].endswith('"')) or (node[1].startswith("'") and node[1].endswith("'")):
 				return StringType(node[1][1:-1])
@@ -353,6 +373,7 @@ class Interpreter:
 				return ctypes.c_double(float(node[1]))
 			else:
 				return ctypes.c_long(int(node[1]))
+		
 		elif node[0]=='IDENTIFIER':
 			varname=node[1]
 			if varname not in self.variables:
@@ -361,28 +382,17 @@ class Interpreter:
 			if DEBUG:
 				print "variable/array/function: ",varname
 			var=self.variables[varname]
-			#print self.variables
-			#print "var=",var.__class__
 			if len(node)==2:
-				#print "identifier ",var,var.__class__,": ",var.value, var.value.__class__
-			
-				#print var
-				#print var.value
-				#try:
-				#print "there"
 				return var.value
-				#except AttributeError:
-				#	return var
 			else:
-				#print 'here'
 				indices=self.evaluate(node[2])
 				if DEBUG:
-					#print "Calling %s"%var.name
 					print "args=",indices
 				return var.get(indices)
 				 
 		elif node[0] in OPERATORS[5:]:
 			return self.functions[(node[0],"BOOLEAN")](*(map(self.evaluate,node[1:])))
+		
 		elif node[0] in OPERATORS[:5]:
 			args=node[1:]
 			args=map(self.evaluate,args)
@@ -395,8 +405,10 @@ class Interpreter:
 			else:
 				ret=self.functions[(node[0],tp)](*args)
 			return ret
+		
 		elif node[0]=='REM':
 			self.cur_line+=1
+		
 		elif node[0]=='LIST':
 			ret=[self.evaluate(node[1])]
 			if len(node)>2:

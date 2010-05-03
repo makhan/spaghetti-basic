@@ -8,7 +8,8 @@ DEBUG=False
 import re
 STRING=[r'\"[^\"]*\"',r"\'[^\']*\'"]
 WORDS=map(lambda x:"\\b%s\\b"%x,['IF','LET','AS','THEN','ELSE','DIM','PRINT','INPUT','GOTO','GOSUB','RETURN',
-		'STRING','INTEGER','DOUBLE','FLOAT','BOOLEAN','AND','OR','NOT','XOR','REM','END','FILE'])
+		'STRING','INTEGER','DOUBLE','FLOAT','BOOLEAN','AND','OR','NOT','XOR','REM','END','FILE', 'INPUTLINE'])
+
 OPERATORS=[r'\+',r'\-',r'\*',r'/',r'\%',r'>=',r'<=',r'<>','=','<','>',r'\(',r'\)',r',',]
 IDENTIFIER_NUMBER=[r'\b\d*\.\d+\b',r'\b\d+\.\d*\b',r'\b\d+\b',r'\b\w+\b']
 LABELS=[r'\b\w+:\b']

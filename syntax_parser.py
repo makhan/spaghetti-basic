@@ -70,13 +70,20 @@ def stmt(source):
 			ret=end(source)
 		elif tokens[pos]=='REM':
 			ret=rem(source)
+		elif tokens[pos]=='INPUTLINE':
+			ret=inputline(source)
 		else:
 			ret=expression(source)
-		if expect(source,':'):
-			print "found"
-			ret=('STMT',ret,stmt(source))
+		#if expect(source,':'):
+		#	print "found"
+		#	ret=('STMT',ret,stmt(source))
 		return ret
-		
+
+def inputline(source):
+	key_word(source,'INPUT')
+	var=get_identifier(source)
+	return ('INPUTLINE',var)
+	
 def rem(source):
 	while len(source[0])>source[-1]:
 		source[-1]+=1
