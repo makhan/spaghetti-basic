@@ -135,7 +135,8 @@ def asgn(source):
 
 def inp(source):
 	key_word(source,'INPUT')
-	var=get_identifier(source)
+	#var=get_identifier(source)
+	var=list_statement(source)
 	return ('INPUT',var)
 
 def output(source):

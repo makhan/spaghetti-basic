@@ -84,8 +84,8 @@ def cast_string(number):
 
 def binary_oper(x,y,return_type,op):
 	"""Performs a binary operation on two values and casts the answer to a specified type"""
-	#if DEBUG:
-	print "operation:",x,op,y
+	if DEBUG:
+		print "operation:",x,op,y
 	return return_type(op(x.value,y.value))
 
 def unary_oper(x,return_type,op):
@@ -199,7 +199,21 @@ class Interpreter:
 			#print self.evaluate(lst[1]),
 			self.printer(lst[-1])
 	
-	def writer(self, )
+	def read(self, lst):
+		print "reading ",lst
+		node=lst[1]
+		target_var=node[1]
+		var=self.variables[target_var]
+		tp=var.type
+		try:
+			#inp=REQUIRED_PY_TYPE[tp](raw_input())
+			inp=REQUIRED_PY_TYPE[tp](self.input_source.read_token())
+		except EOFError:
+			raise InterpreterError("Can't read input, EOF found")
+		tp=var.type
+		var.value=tp(inp)
+		if len(lst)>2:
+			self.read(lst[-1])
 	
 	def evaluate(self,node):
 		"""Evaluator function
@@ -256,7 +270,7 @@ class Interpreter:
 				
 			if varname not in self.variables:
 				rhs_type=get_type(value,value)
-				print ">>>>>>",rhs_type
+				#print ">>>>>>",rhs_type
 				if len(node[1])==2:
 					# not an array: automatic declaration
 					##print "+++++",DATA_TYPES[rhs_type]
@@ -266,7 +280,7 @@ class Interpreter:
 					# array
 					raise InterpreterError("Cannot assign to undeclared array %s: "%varname)
 				self.variables[varname]=var
-				print "just assigned ",varname," to ", var.value.__class__
+				#print "just assigned ",varname," to ", var.value.__class__
 			else:
 				var=self.variables[varname]
 			
@@ -315,16 +329,17 @@ class Interpreter:
 			self.stack.append(self.cur_line+1)
 			self.cur_line=self.line_mapping[target.value]
 		elif node[0]=='INPUT':
-			target_var=node[1][1]
-			var=self.variables[target_var]
-			tp=var.type
-			try:
+			#target_var=node[1][1]
+			#var=self.variables[target_var]
+			#tp=var.type
+			#try:
 				#inp=REQUIRED_PY_TYPE[tp](raw_input())
-				inp=REQUIRED_PY_TYPE[tp](self.input_source.read_line())
-			except EOFError:
-				raise InterpreterError("Can't read input, EOF found")
-			tp=var.type
-			var.value=tp(inp)
+			#	inp=REQUIRED_PY_TYPE[tp](self.input_source.read_line())
+			#except EOFError:
+			#	raise InterpreterError("Can't read input, EOF found")
+			#tp=var.type
+			#var.value=tp(inp)
+			self.read(node[1])
 			self.cur_line+=1
 		elif node[0]=='END':
 			self.cur_line=len(self.parse_trees)
@@ -349,7 +364,7 @@ class Interpreter:
 			#print self.variables
 			#print "var=",var.__class__
 			if len(node)==2:
-				print "identifier ",var,var.__class__,": ",var.value, var.value.__class__
+				#print "identifier ",var,var.__class__,": ",var.value, var.value.__class__
 			
 				#print var
 				#print var.value
