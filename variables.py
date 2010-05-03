@@ -1,5 +1,6 @@
 import operator
 from collections import deque
+import ctypes
 
 class Variable:
 	def __init__(self, name, type_, value):
@@ -43,6 +44,8 @@ class MultiArray:
 	def get(self, coords):
 		pos=self.__convert(coords)
 		return self.__array[pos]
+	def num_dimensions(self):
+		return len(self.__dimensions)
 	#def __len__(self):
 	#	return len(self.__array)
 
@@ -54,8 +57,12 @@ class Function:
 		self.__f=f
 	
 	def get(self, args):
-		return self.__f(*args)
-		
+		ret=self.__f(*args)
+		if ret is None:
+			return ctypes.c_long(0)
+		else:
+			return ret
+			 
 class FileHandle:
 	def __init__(self,f):
 		self.__f=f

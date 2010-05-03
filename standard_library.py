@@ -66,26 +66,41 @@ float_lib=[
 
 # Additional Functions
 
+#def sort(array):
+	#if array.num_dimensions!=1:
+	#	raise LibraryError("Cannot sort an array with more than one dimension")
+	#else:
+	#	self.value.sort()
+#	array.sort()
+#	return None
+
 # File I/O -  * Not implemented yet *
 
-def open_file(name,wr):
-	t={'READ':'r','R':'r', 'WRITE':'w','W':'w'}
-	f=open(name,t[wr])
-	return f
+#def open_file(name,wr):
+#	t={'READ':'r','R':'r', 'WRITE':'w','W':'w'}
+#	f=open(name,t[wr])
+#	return f
 
-def finput(name):
-	ret=name.read()
+#def finput(name):
+#	ret=name.read()
 	#print "got ",ret
-	return ret
+#	return ret
 	#return StringType(name.read())
-def foutput(name,var):
+#def foutput(name,var):
 	#name.value.write(var)
-	name.write(var)
+#	name.write(var)
 	
 stdlib={}
 stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
 stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
 stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
+#stdlib["SORT"]=Function(sort)
 #stdlib.update((name,Function(wrapper(f))) for name,f in (('open', open_file), ('input', finput), ('print', foutput)))
 
 #stdlib.update([(name, Function(f)) for name,f in hacky_functions])
+
+class LibraryError:
+	def __init__(self, message="Invalid library call"):
+		self.message=message
+	def __str__(self):
+		return self.message

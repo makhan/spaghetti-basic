@@ -36,8 +36,8 @@ REQUIRED_PY_TYPE={
 	ctypes.c_long: int,
 	ctypes.c_float: float,
 	ctypes.c_double: float,
-	StringType: str,
-	FileHandle: file
+	StringType: str#,
+	#FileHandle: file
 }
 
 # mapping of C/variables module types to Spaghetti types
@@ -165,6 +165,7 @@ class Interpreter:
 			('>=','BOOLEAN'):make_func(ctypes.c_bool,operator.ge),
 			('<=','BOOLEAN'):make_func(ctypes.c_bool,operator.le),
 			('<>','BOOLEAN'):make_func(ctypes.c_bool,operator.ne),
+			
 		}
 			
 		
@@ -286,8 +287,8 @@ class Interpreter:
 			varname=node[1][1] # left hand side
 			value=self.evaluate(node[2]) # right hand side
 			#print "got value ",value
-			if DEBUG:
-				print value
+			#if DEBUG:
+			#	print value
 				
 			if varname not in self.variables:
 				rhs_type=get_type(value,value)
@@ -463,12 +464,13 @@ if __name__=='__main__':
 				# print parse tree in a separate text file
 				parse_file=open(arguments[0][:max(arguments[0].index('.'),0)]+'_parsetree.txt','w')
 				parse_file.write(str(parse_tree))
+			cmd_line=Variable('COMMAND',StringType,StringType(' '.join(arguments)))
+			#cmd=MultiArray([len(arguments)],'COMMAND',StringType,)
+			#cmd_line=Variable('COMMAND',MultiArray,MultiArray())
+			runner=Interpreter(parse_tree, linenum_idx, {'COMMAND$':cmd_line, 'COMMAND':cmd_line})
+			runner.run()
 		except IOError,ioe:
 			print "Error in reading/writing file:\n",str(ioe)
-		cmd_line=Variable('COMMAND',StringType,StringType(' '.join(arguments)))
-		#cmd=MultiArray([len(arguments)],'COMMAND',StringType,)
-		#cmd_line=Variable('COMMAND',MultiArray,MultiArray())
-		runner=Interpreter(parse_tree, linenum_idx, {'COMMAND$':cmd_line, 'COMMAND':cmd_line})
-		runner.run()
+			
 	else:
 		print "usage: ./spaghetti.py <file name> or python spaghetti.py <file_name>"
