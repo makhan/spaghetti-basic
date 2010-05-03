@@ -353,16 +353,20 @@ class Interpreter:
 			self.cur_line=self.line_mapping[target.value]
 		
 		elif node[0]=='INPUT':
+			# read a list of tokens and save them in the supplied list of variables
 			self.read(node[1], self.input_source.read_token)
 			self.cur_line+=1
 		elif node[0]=='INPUTLINE':
+			# same as INPUT, but reads lines instead of tokens
 			self.readline(node[1], self.input_source.read_line)
 			self.cur_line+=1
 		
 		elif node[0]=='END':
-			self.cur_line=len(node[1],self.parse_trees)
+			# terminates program
+			self.cur_line=len(self.parse_trees)
 		
 		elif node[0]=='RETURN':
+			# go back to the line after the last call to GOSUB
 			ret_value=self.stack.pop()
 			self.cur_line=ret_value
 		
