@@ -1,4 +1,5 @@
 import operator
+from collections import deque
 
 class Variable:
 	def __init__(self, name, type_, value):
@@ -38,7 +39,7 @@ class MultiArray:
 		pos=self.__convert(coords)
 		self.__array[pos]=value
 		return value
-		
+
 	def get(self, coords):
 		pos=self.__convert(coords)
 		return self.__array[pos]
@@ -54,3 +55,32 @@ class Function:
 	
 	def get(self, args):
 		return self.__f(*args)
+		
+class FileHandle:
+	def __init__(self,f):
+		self.__f=f
+		self.__tokens=deque()
+		self.value=f;
+		print "created FileHandle ",f
+	def get_line(self):
+		return self.__f.readline()
+	def write(self,x):
+		"Writes a single token into the file"
+		try:
+			to_write=x.value
+		except AttributeError,e:
+			raise FileIOError("Cannot write complex type")
+		self.__f.write(to_write)
+	def read(self):
+		"Reads a single token from the file (or file buffer) and returns a StringType"
+		#print "in read"
+		while len(self.__tokens)==0:
+			self.__tokens.extend(self.__f.readline().split())
+			#print "tokens=",self.__tokens
+		return StringType(self.__tokens.popleft())
+	
+class FileIOError:
+	def __init__(self, mesg):
+		self.__mesg=mesg
+	def __str__(self):
+		return self.__mesg

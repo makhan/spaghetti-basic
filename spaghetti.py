@@ -9,7 +9,7 @@
 
 # Warning:
 # Most of the code has practically no comments/docstrings
-# Trying to run incorect programs generates exceptions -> no helpful syntax error type messages
+# Trying to run incorect programs generates exceptions -> no helpful "syntax error" type messages
 # There is no real lexer at the moment. That part of the job is done for now using regexes.
 
 DEBUG=False
@@ -19,14 +19,15 @@ import operator
 import ctypes
 import tokenizer
 import syntax_parser
-from variables import Variable,StringType, MultiArray, Function
+from variables import Variable, StringType, MultiArray, Function, FileHandle
 import standard_library
 import getopt
+from reader import DataSource
 
 #Allowed operators		
 OPERATORS=['+','-','*','/','%','AND','OR','NOT','XOR','=','>','<','<>','>=','<=']
 
-#determines order of promotion to another type whne mixed types used in the same expression 
+#determines order of promotion to another type when mixed types used in the same expression 
 NUMERIC_PRECEDENCE=[StringType,ctypes.c_bool,ctypes.c_long,ctypes.c_float, ctypes.c_double]
 
 #mapping of C/variables module types to equivalent python types
@@ -35,7 +36,8 @@ REQUIRED_PY_TYPE={
 	ctypes.c_long: int,
 	ctypes.c_float: float,
 	ctypes.c_double: float,
-	StringType: str
+	StringType: str,
+	FileHandle: file
 }
 
 #mapping of C/variables module types to Spaghetti types
@@ -44,7 +46,8 @@ NUMERIC_TYPES={
 	ctypes.c_long: 'INTEGER',
 	ctypes.c_float: 'DOUBLE',
 	ctypes.c_double: 'DOUBLE',
-	StringType: 'STRING'
+	StringType: 'STRING',
+	FileHandle:'FILE'
 }
 
 #mapping of Spaghetti types to C/variables module types
@@ -53,7 +56,8 @@ DATA_TYPES={
 	'DOUBLE':ctypes.c_double,
 	'SINGLE':ctypes.c_float,
 	'BOOLEAN':ctypes.c_bool,
-	'STRING': StringType
+	'STRING': StringType,
+	'FILE': FileHandle
 }
 
 
@@ -62,8 +66,11 @@ def cast(dest, var):
 	types are either C types (ctypes.*) or types defined in the variables module.
 	var must have a .value attribute that is a Python type.
 	"""
-	return dest(var.value)
-
+	#print "casting ", var, " to ", dest
+	ret= dest(var.value)
+	#print ret
+	return ret
+	
 def cast_boolean(x):
 	"""Returns 1 or 0 based on whether x is evaluated to True (according to Python's rules of truth) or not"""
 	if x:
@@ -77,8 +84,8 @@ def cast_string(number):
 
 def binary_oper(x,y,return_type,op):
 	"""Performs a binary operation on two values and casts the answer to a specified type"""
-	if DEBUG:
-		print "operation:",x,op,y
+	#if DEBUG:
+	print "operation:",x,op,y
 	return return_type(op(x.value,y.value))
 
 def unary_oper(x,return_type,op):
@@ -102,14 +109,18 @@ def get_type(a,b):
 	"""Returns the type of the answer if a binary operation is to be performed on a and b"""
 	if DEBUG:
 		print "type of ",a," and ",b
-	at=type(a)
-	bt=type(b)
+	#at=type(a)
+	#bt=type(b)
+	at=a.__class__
+	bt=b.__class__
 	
+	# Stupid Hack removed
 	# Stupid Hack: x in not in NUMERIC_TYPES => x is StringType
 	# This will break when additional types are added, but works for now
-	(at,bt) = map(lambda x: x if x in NUMERIC_TYPES else StringType, (at,bt))
+	#(at,bt) = map(lambda x: x if x in NUMERIC_TYPES else StringType, (at,bt))
 	
 	if DEBUG:
+		print "vars are ",a," and ",b
 		print "types are ",at," and ",bt
 	
 	n=NUMERIC_PRECEDENCE
@@ -120,7 +131,7 @@ def get_type(a,b):
 class Interpreter:
 	"""The main interpreter class.
 	Takes a list of parse trees and start evaluation from the first one"""
-	def __init__(self,parse_trees,line_mapping):
+	def __init__(self,parse_trees,line_mapping, predefinded_values=dict()):
 		self.parse_trees=parse_trees
 		self.line_mapping=line_mapping
 		self.functions={ # operators
@@ -163,7 +174,10 @@ class Interpreter:
 		# accessing an array element, the interpreter also does not make any distinction,
 		# and predefined function objects have a .get method just like the MultiArray class. 
 		self.variables=standard_library.stdlib # initially it only has predefined functions 
+		self.variables.update(predefinded_values) # take in any predefined values (usually only COMMAND)
+		
 		self.stack=[] # call stack used to store return locations for GOSUB-RETURN 
+		self.input_source=DataSource() # wraps sys.stdin - specify optional param to read from somewhere else  
 		
 	def printer(self,lst):
 		"""helper method that prints a list of items.
@@ -175,13 +189,18 @@ class Interpreter:
 		elif len(lst)==2:
 			# non-empty list but with no next element
 			# print this element including a newline and return
+			#print self.evaluate(lst[1]).__class__
 			print self.evaluate(lst[1]).value
+			#print self.evaluate(lst[1])
 		else:
 			# current node has successors,
 			# print current value and move on to the next node 
 			print self.evaluate(lst[1]).value,
+			#print self.evaluate(lst[1]),
 			self.printer(lst[-1])
-			
+	
+	def writer(self, )
+	
 	def evaluate(self,node):
 		"""Evaluator function
 		Evaluates the parse tree rooted at the current node
@@ -218,6 +237,7 @@ class Interpreter:
 			if len(id_node)==2:
 				# scalar: simply create a new Variable
 				var=Variable(name,datatype,datatype(0))
+				#print "creating scalar %s"%name,var.__class__
 			else:
 				# array: get dimensions by evaluating the list following the name and create a MultiArray
 				dimensions=self.evaluate(id_node[-1])
@@ -230,24 +250,35 @@ class Interpreter:
 			# assignment
 			varname=node[1][1] # left hand side
 			value=self.evaluate(node[2]) # right hand side
+			#print "got value ",value
 			if DEBUG:
 				print value
 				
 			if varname not in self.variables:
 				rhs_type=get_type(value,value)
+				print ">>>>>>",rhs_type
 				if len(node[1])==2:
 					# not an array: automatic declaration
+					##print "+++++",DATA_TYPES[rhs_type]
 					var=Variable(varname,DATA_TYPES[rhs_type],cast(DATA_TYPES[rhs_type],ctypes.c_long(0)))
+					#print "value: ",var.value
 				else:
 					# array
 					raise InterpreterError("Cannot assign to undeclared array %s: "%varname)
 				self.variables[varname]=var
+				print "just assigned ",varname," to ", var.value.__class__
 			else:
 				var=self.variables[varname]
 			
 			if len(node[1])==2:
 				# not an array: simple assignment
-				var.value=var.type(REQUIRED_PY_TYPE[var.type](value.value))
+				#print "type: ", var.type
+				#print "value: ", value
+				if var.type!=value.__class__:
+					#print "here"
+					var.value=var.type(REQUIRED_PY_TYPE[var.type](value.value))
+				else:
+					var.value=value
 			else:
 				# array: figure out indices first and then try to assign
 				coords=self.evaluate(node[1][-1])
@@ -255,6 +286,8 @@ class Interpreter:
 					var.set_(coords,var.type(REQUIRED_PY_TYPE[var.type](value.value)))
 				except AttributeError,e:	
 					raise InterpreterError("Cannot assign to %s"%varname) 
+			
+			#print "checking: ",self.variables[varname].value
 			self.cur_line+=1
 		
 		elif node[0]=='IF':
@@ -286,7 +319,8 @@ class Interpreter:
 			var=self.variables[target_var]
 			tp=var.type
 			try:
-				inp=REQUIRED_PY_TYPE[tp](raw_input())
+				#inp=REQUIRED_PY_TYPE[tp](raw_input())
+				inp=REQUIRED_PY_TYPE[tp](self.input_source.read_line())
 			except EOFError:
 				raise InterpreterError("Can't read input, EOF found")
 			tp=var.type
@@ -312,8 +346,11 @@ class Interpreter:
 			if DEBUG:
 				print "variable/array/function: ",varname
 			var=self.variables[varname]
-			
+			#print self.variables
+			#print "var=",var.__class__
 			if len(node)==2:
+				print "identifier ",var,var.__class__,": ",var.value, var.value.__class__
+			
 				#print var
 				#print var.value
 				#try:
@@ -325,7 +362,7 @@ class Interpreter:
 				#print 'here'
 				indices=self.evaluate(node[2])
 				if DEBUG:
-					print "Callling %s"%var.name
+					#print "Calling %s"%var.name
 					print "args=",indices
 				return var.get(indices)
 				 
@@ -353,17 +390,17 @@ class Interpreter:
 				print "returning ",ret
 			return ret
 			
-		elif node[0]=='FOR':
+		#elif node[0]=='FOR':
 			# Not implemented at the parser level
 			# Assumes node structure of ('FOR',identifier,start_value,end_value,step,node_inside_loop,next_node)
-			(discard,identifier,start_value,end_value,step,node_inside_loop,next_node)=node
-			del discard
+		#	(discard,identifier,start_value,end_value,step,node_inside_loop,next_node)=node
+		#	del discard
 			
-			assignment=('LET',identifier,start_value)
+		#	assignment=('LET',identifier,start_value)
 			
-			while self.evaluate(identifier).value!=self.evaluate(end_value).value:
-				self.evaluate(node_inside_loop)
-			self.evaluate(next_node)
+		#	while self.evaluate(identifier).value!=self.evaluate(end_value).value:
+		#		self.evaluate(node_inside_loop)
+		#	self.evaluate(next_node)
 		else:
 			raise InterpreterError("Unknown parse tree node: %s"%str(node[0]))
 	
@@ -384,23 +421,23 @@ class InterpreterError:
 		
 if __name__=='__main__':
 	setrecursionlimit(10000)
-	#print argv
 	options,arguments=getopt.getopt(argv[1:],"p")
-	#print options
-	#print arguments
-	if len(arguments)==1:
+	if len(arguments)>=1:
 		try:
 			infile=open(arguments[0], 'r')
 			lines=infile.readlines()
 			lines=[tokenizer.tokenize(line) for line in lines]
 			(linenum_idx,parse_tree)=syntax_parser.create_parse_trees(lines)
 			if ('-p','') in options:
-				#print parse tree in a separate text file
+				# print parse tree in a separate text file
 				parse_file=open(arguments[0][:max(arguments[0].index('.'),0)]+'_parsetree.txt','w')
 				parse_file.write(str(parse_tree))
 		except IOError,ioe:
 			print "Error in reading/writing file:\n",str(ioe)
-		runner=Interpreter(parse_tree, linenum_idx)
+		cmd_line=Variable('COMMAND',StringType,StringType(' '.join(arguments)))
+		#cmd=MultiArray([len(arguments)],'COMMAND',StringType,)
+		#cmd_line=Variable('COMMAND',MultiArray,MultiArray())
+		runner=Interpreter(parse_tree, linenum_idx, {'COMMAND$':cmd_line, 'COMMAND':cmd_line})
 		runner.run()
 	else:
 		print "usage: ./spaghetti.py <file name> or python spaghetti.py <file_name>"

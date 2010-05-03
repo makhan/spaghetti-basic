@@ -1,14 +1,15 @@
-from variables import Variable, StringType, MultiArray,Function
+from variables import Variable, StringType, MultiArray, Function, FileHandle
 import math
 import ctypes
 import random
 
-DEBUG=True
+DEBUG=False
 
 function_mapping={
 	int:ctypes.c_long,
 	float:ctypes.c_double,
-	#str:StringType
+	file:FileHandle,
+	str:StringType
 }
 
 def wrapper(f):
@@ -63,12 +64,28 @@ float_lib=[
 	('dbl',float)
 ]
 
-#hacky_functions=[
-#	('LEN',len)
-#]
+# Additional Functions
 
+# File I/O -  * Not implemented yet *
+
+def open_file(name,wr):
+	t={'READ':'r','R':'r', 'WRITE':'w','W':'w'}
+	f=open(name,t[wr])
+	return f
+
+def finput(name):
+	ret=name.read()
+	#print "got ",ret
+	return ret
+	#return StringType(name.read())
+def foutput(name,var):
+	#name.value.write(var)
+	name.write(var)
+	
 stdlib={}
 stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
 stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
 stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
+#stdlib.update((name,Function(wrapper(f))) for name,f in (('open', open_file), ('input', finput), ('print', foutput)))
+
 #stdlib.update([(name, Function(f)) for name,f in hacky_functions])

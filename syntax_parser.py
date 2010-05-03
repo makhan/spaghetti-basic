@@ -2,7 +2,7 @@
 from expression_parser import *
 DEBUG=False
 
-TYPES=['INTEGER','DOUBLE','SINGLE','BOOLEAN','STRING']
+TYPES=['INTEGER','DOUBLE','SINGLE','BOOLEAN','STRING','FILE']
 
 def key_word(source,key):
 	(tokens,pos)=source
