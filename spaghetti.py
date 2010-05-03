@@ -12,6 +12,14 @@
 # Trying to run incorect programs generates exceptions -> no helpful "syntax error" type messages
 # There is no real lexer at the moment. That part of the job is done for now using regexes.
 
+# Release History:
+#   Version 0.1 - 24th January 2010
+#   Initial Release
+#
+#   Version 0.2 - 4th May 2010
+#   Many major bugfixes
+#   Added support for 2 major features: command line arguments, INPUTLINE, and multiple variable INPUT
+
 DEBUG=False
 
 from sys import argv,setrecursionlimit
