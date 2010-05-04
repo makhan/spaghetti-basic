@@ -449,7 +449,14 @@ class Interpreter:
 		while self.cur_line<len(self.parse_trees):
 			if DEBUG:
 				print "running ",self.parse_trees[self.cur_line]
+			
+			# hack: added last line to current line check to enable expressions to act like statements
+			last_line=self.cur_line
+			
 			self.evaluate(self.parse_trees[self.cur_line])
+			
+			if self.cur_line==last_line:
+				self.cur_line+=1
 	
 		 
 class InterpreterError:
