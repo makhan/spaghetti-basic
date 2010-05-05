@@ -19,6 +19,10 @@
 #   Version 0.2 - 4th May 2010
 #   Many major bugfixes
 #   Added support for 2 major features: command line arguments, INPUTLINE, and multiple variable INPUT
+#
+#   Version 0.2.1 - ?th May 2010
+#   Some bugfixes
+#   Added SORT function
 
 DEBUG=False
 

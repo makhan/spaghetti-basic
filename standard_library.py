@@ -66,13 +66,9 @@ float_lib=[
 
 # Additional Functions
 
-#def sort(array):
-	#if array.num_dimensions!=1:
-	#	raise LibraryError("Cannot sort an array with more than one dimension")
-	#else:
-	#	self.value.sort()
-#	array.sort()
-#	return None
+def sort(array):
+	array.sort(key=lambda x:x.value)
+	return None
 
 # File I/O -  * Not implemented yet *
 
@@ -94,7 +90,7 @@ stdlib={}
 stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
 stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
 stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
-#stdlib["SORT"]=Function(sort)
+stdlib["SORT"]=Function(sort)
 #stdlib.update((name,Function(wrapper(f))) for name,f in (('open', open_file), ('input', finput), ('print', foutput)))
 
 #stdlib.update([(name, Function(f)) for name,f in hacky_functions])
