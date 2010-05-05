@@ -30,6 +30,8 @@ string_lib=[
 	('RIGHT', lambda s,i:s[-i:]),
 	('CHR', chr),
 	('STR',str),
+	('UCASE',lambda x: x.upper()),
+	("LCASE",lambda x: x.lower())
 	#('LEN',len)
 ]
 
@@ -37,6 +39,7 @@ int_lib=[
 	('INT', int),
 	('ASC', ord),
 	('ABS',abs),
+	('FIND',lambda s,t:s.find(t)),
 	('LEN',len)
 ]
 
@@ -66,6 +69,8 @@ float_lib=[
 
 # Additional Functions
 
+
+# Array Functions
 def sort(array):
 	array.sort(key=lambda x:x.value)
 	return None
@@ -82,10 +87,16 @@ def fold(array):
 	return_type=function_mapping.get(type(ret),StringType)
 	return return_type(ret)
 
+def join(delimiter, array):
+	delimiter=delimiter.value
+	ret=delimiter.join(str(x.value) for x in array)
+	return StringType(ret)
+
 array_lib=[
 	("SORT", sort),
 	("REVERSE",reverse),
-	("SUM", fold)
+	("SUM", fold),
+	("JOIN",join)
 ]
 
 # File I/O -  * Not implemented yet *

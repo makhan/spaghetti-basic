@@ -121,15 +121,8 @@ def get_type(a,b):
 	"""Returns the type of the answer if a binary operation is to be performed on a and b"""
 	if DEBUG:
 		print "type of ",a," and ",b
-	#at=type(a)
-	#bt=type(b)
 	at=a.__class__
 	bt=b.__class__
-	
-	# Stupid Hack removed
-	# Stupid Hack: x in not in NUMERIC_TYPES => x is StringType
-	# This will break when additional types are added, but works for now
-	#(at,bt) = map(lambda x: x if x in NUMERIC_TYPES else StringType, (at,bt))
 	
 	if DEBUG:
 		print "vars are ",a," and ",b
