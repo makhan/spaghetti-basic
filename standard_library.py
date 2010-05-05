@@ -70,6 +70,24 @@ def sort(array):
 	array.sort(key=lambda x:x.value)
 	return None
 
+def reverse(array):
+	array.reverse()
+	return None
+	
+def fold(array):
+	try:
+		ret=sum(x.value for x in array)
+	except TypeError:
+		raise LibraryError("Cannot sum over non-numeric data")
+	return_type=function_mapping.get(type(ret),StringType)
+	return return_type(ret)
+
+array_lib=[
+	("SORT", sort),
+	("REVERSE",reverse),
+	("SUM", fold)
+]
+
 # File I/O -  * Not implemented yet *
 
 #def open_file(name,wr):
@@ -90,7 +108,7 @@ stdlib={}
 stdlib.update([(name,Function(wrapper(f))) for (name,f) in int_lib])
 stdlib.update([(name,Function(wrapper(f))) for name,f in string_lib])
 stdlib.update([(name.upper(),Function(wrapper(f))) for name,f in float_lib])
-stdlib["SORT"]=Function(sort)
+stdlib.update([(name,Function(f)) for name,f in array_lib])
 #stdlib.update((name,Function(wrapper(f))) for name,f in (('open', open_file), ('input', finput), ('print', foutput)))
 
 #stdlib.update([(name, Function(f)) for name,f in hacky_functions])
