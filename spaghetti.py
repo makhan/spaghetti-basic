@@ -22,7 +22,7 @@
 #
 #   Version 0.2.1 - ?th May 2010
 #   Some bugfixes
-#   Added SORT function
+#   Added SORT,REVERSE, FORMAT, UCASE, LCASE functions
 
 DEBUG=False
 
@@ -35,6 +35,7 @@ from variables import Variable, StringType, MultiArray, Function, FileHandle
 import standard_library
 import getopt
 from reader import DataSource
+from translator import translate
 
 #Allowed operators		
 OPERATORS=['+','-','*','/','%','AND','OR','NOT','XOR','=','>','<','<>','>=','<=']
@@ -212,7 +213,7 @@ class Interpreter:
 		node=lst[1]
 		target_var=node[1]
 		if target_var not in self.variables:
-			raise InterpreterError("variable %s not defined"%varname)
+			raise InterpreterError("variable %s not defined"%target_var)
 			
 		var=self.variables[target_var]
 		tp=var.type
@@ -470,7 +471,7 @@ if __name__=='__main__':
 		try:
 			infile=open(arguments[0], 'r')
 			lines=infile.readlines()
-			lines=[tokenizer.tokenize(line) for line in lines]
+			lines=translate([tokenizer.tokenize(line) for line in lines])
 			(linenum_idx,parse_tree)=syntax_parser.create_parse_trees(lines)
 			if ('-p','') in options:
 				# print parse tree in a separate text file

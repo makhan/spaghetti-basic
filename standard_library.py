@@ -31,8 +31,9 @@ string_lib=[
 	('CHR', chr),
 	('STR',str),
 	('UCASE',lambda x: x.upper()),
-	("LCASE",lambda x: x.lower())
+	("LCASE",lambda x: x.lower()),
 	#('LEN',len)
+	('FORMAT', lambda x,y: (x%y))
 ]
 
 int_lib=[
