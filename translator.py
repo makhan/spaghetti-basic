@@ -1,6 +1,15 @@
 """
 A module that simply bolts on simple loops
 by translating them into interpretable code in Spaghetti.
+
+This module will probably disappear in the future.
+
+This is just a quick hack some hours before the GCJ 2010 Quals
+to add FOR loops for solving problems during the contest
+
+Warning: Extremely Buggy and hardly works
+
+A proper loop structure will have to be implemented at the parser level
 """
 
 from tokenizer import tokenize
@@ -36,8 +45,6 @@ def translate(lines):
 			output.append([str(cur_line),'LET',var,'=',start])
 			cur_line+=1
 			
-			#output.append(tokenize("__loop_stack(__call_sp)=%d"%cur_line)
-			#output.append(tokenize("__call_sp=__call_sp+1"))
 			output.append([str(cur_line), 'IF',var,'=',end,'THEN','GOTO'])
 			
 			loop_stack.append(step)
