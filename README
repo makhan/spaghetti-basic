@@ -1,7 +1,7 @@
 Spaghetti
 v0.2
 
-Spaghetti is a very simple mini/toy-language interpreter. It is a very simplified language, resembling the syntax and grammar of early BASICs. There are no functions, scopes, or even looping statement and most code involves judicious use of GOTOs and GOSUBs, hence its name :).
+Spaghetti is a very simple mini/toy-language interpreter. It is a very simple language, resembling the syntax and grammar of early BASICs. There are no functions, scopes, or even looping statements and most code involves judicious use of GOTOs and GOSUBs, hence its name :).
 
 This is not meant to be a serious programming language, especially NOT a language for beginners to learn programming with. 
 
@@ -20,7 +20,7 @@ examples/ - Directory of example code written for Spaghetti
  
 Installation:
 
-Currently Spaghetti does not come with and setup script. The situation will probably change in the near future.
+Currently Spaghetti does not come with a setup script. The situation will probably change in the near future.
  
 Usage:
 
@@ -29,4 +29,4 @@ or
 $ python spaghetti.py <file>
 
 Maintainer:
-Muntasir Azam Khan (muntasir[dot]khan[at]gmail[dot]com)
+Muntasir Khan (muntasir[dot]khan[at]gmail[dot]com)
